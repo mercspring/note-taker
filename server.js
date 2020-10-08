@@ -25,6 +25,7 @@ const writeNotes = (newNote, res) => {
         if (err) throw err
         else {
             notes = JSON.parse(data);
+            newNote.id = uniqueId(notes);
             notes.push(newNote);
             fs.writeFile("db/db.json", JSON.stringify(notes), (err) => {
                 if (err) throw err
@@ -36,13 +37,45 @@ const writeNotes = (newNote, res) => {
 
 const readNotes = (res) => {
     const data = fs.readFile("db/db.json", 'utf8', (err, data) => {
-        console.log("reading file")
         if (err) throw err
         else res.json(JSON.parse(data))
 
     })
 }
 
+const deleteNote = (id, res) => {
+    let notes;
+    fs.readFile("db/db.json", "utf8", (err, data) => {
+        if (err) throw err
+        else {
+            notes = JSON.parse(data);
+            for (let i = 0; i < notes.length; i++) {
+                if (notes[i].id === id) {
+                    notes.splice(i, 1);
+                }
+            }
+            fs.writeFile("db/db.json", JSON.stringify(notes), (err) => {
+                if (err) throw err
+                res.send("entry deleted")
+            })
+        }
+    })
+}
+
+const uniqueId = (notes) => {
+    let id = randomInt();
+    for (let i = 0; i < notes.length; i++) {
+        if (id === notes[i].id) {
+            id = uniqueId(notes);
+            break;
+        }
+    }
+    return id
+}
+
+const randomInt = () => {
+    return Math.floor(Math.random() * 10000)
+}
 
 
 /********** Routes ******************/
@@ -66,7 +99,8 @@ app.post("/api/notes", function (req, res) {
 });
 
 // Allow deleation of notes based on id
-app.delete("/api/notes:id", function (req, res) {
+app.delete("/api/notes/:id", function (req, res) {
+    deleteNote(parseInt(req.params.id), res)
 });
 
 app.get("*", function (req, res) {
